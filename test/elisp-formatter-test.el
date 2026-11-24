@@ -164,6 +164,13 @@ Return the exit code and the output, as (CODE . OUTPUT)."
     (elisp-formatter-test--write-file "right.el" "(defun f (x)\n  x)\n")
     (should (equal (car (elisp-formatter-test--run "elisp-formatter-check" ".")) 0))))
 
+;; 対象を渡さなければ、使い方を出し、失敗する。
+(ert-deftest elisp-formatter-tells-the-usage-and-fails-without-paths ()
+  (dolist (command '("elisp-formatter-write" "elisp-formatter-check"))
+    (let ((result (elisp-formatter-test--run command)))
+      (should (equal (car result) 2))
+      (should (string-search "Usage:" (cdr result))))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
