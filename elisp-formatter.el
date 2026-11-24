@@ -10,6 +10,9 @@
   "Return the text of FILE as the formatter writes it."
   (with-temp-buffer
     (insert-file-contents file)
+    (emacs-lisp-mode)
+    (let ((inhibit-message t))
+      (indent-region (point-min) (point-max)))
     (buffer-string)))
 
 (provide 'elisp-formatter)
