@@ -84,6 +84,28 @@
           (should-not elisp-formatter-test--ran))
       (delete-file file))))
 
+(defmacro elisp-formatter-test--in-folder (names &rest body)
+  "Run BODY in a new folder that holds the empty files NAMES.
+A name may have a folder in it, which is made."
+  (declare (indent 1))
+  `(let ((default-directory (file-name-as-directory (make-temp-file "elisp-formatter-test" t))))
+     (unwind-protect
+         (progn
+           (dolist (name ,names)
+             (make-empty-file name t))
+           ,@body)
+       (delete-directory default-directory t))))
+
+(defun elisp-formatter-test--relative (files)
+  "Return FILES relative to the current folder, sorted."
+  (sort (mapcar #'file-relative-name files) #'string<))
+
+;; フォルダーを渡すと、その下の.elのファイルがすべて対象になる。
+(ert-deftest elisp-formatter-takes-all-the-el-files-under-a-folder ()
+  (elisp-formatter-test--in-folder '("lisp/a.el" "lisp/test/b.el" "lisp/notes.txt")
+    (should (equal (elisp-formatter-test--relative (elisp-formatter-files '("lisp")))
+                   '("lisp/a.el" "lisp/test/b.el")))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
