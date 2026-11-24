@@ -2,7 +2,14 @@
 
 ;;; Commentary:
 
-;; Emacs Lisp has no formatter of its own, so Emacs indents it.
+;; Emacs Lisp has no formatter of its own, so Emacs indents it.  The indent is the one of
+;; `emacs-lisp-mode', with spaces and no tabs, and no space at the end of a line.  Nothing
+;; changes inside a string.  A macro of the given files is indented by its `declare' form.
+;;
+;;   emacs -Q --batch -l elisp-formatter.el -f elisp-formatter-write PATH...
+;;   emacs -Q --batch -l elisp-formatter.el -f elisp-formatter-check PATH...
+;;
+;; See README.md.
 
 ;;; Code:
 
