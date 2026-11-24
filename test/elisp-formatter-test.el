@@ -38,6 +38,11 @@
                   "(defun f (x)\n  (when x\n    (when x\n      (when x\n\t(message \"%s\" x)))))\n")
                  "(defun f (x)\n  (when x\n    (when x\n      (when x\n        (message \"%s\" x)))))\n")))
 
+;; 文字列の中の行の頭のタブは、そのまま残る。
+(ert-deftest elisp-formatter-leaves-a-tab-at-the-start-of-a-line-in-a-string ()
+  (let ((text "(defconst c \"first\n\tsecond\")\n"))
+    (should (equal (elisp-formatter-test--formatted text) text))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
