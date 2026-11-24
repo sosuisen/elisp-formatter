@@ -21,6 +21,10 @@ point at the end of the match."
     (unless (elisp-formatter--in-string-p (match-beginning 0))
       (replace-match (funcall replacement) t t))))
 
+(defun elisp-formatter-files (paths)
+  "Return the Emacs Lisp files under the folders PATHS."
+  (mapcan (lambda (path) (directory-files-recursively path "\\.el\\'")) paths))
+
 (defun elisp-formatter-learn-macros (files)
   "Define the macros of FILES, so that the indent follows their `declare' forms.
 Only the `defmacro' forms are evaluated: loading the files would run the
