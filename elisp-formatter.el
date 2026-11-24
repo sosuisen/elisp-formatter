@@ -16,7 +16,8 @@
       (indent-region (point-min) (point-max)))
     (goto-char (point-min))
     (while (re-search-forward "^[ \t]*\t[ \t]*" nil t)
-      (replace-match (make-string (current-column) ?\s)))
+      (unless (save-excursion (save-match-data (nth 3 (syntax-ppss (match-beginning 0)))))
+        (replace-match (make-string (current-column) ?\s))))
     (buffer-string)))
 
 (provide 'elisp-formatter)
