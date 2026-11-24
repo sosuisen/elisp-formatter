@@ -45,17 +45,14 @@ On a development machine, clone this repository once, and run the commands from 
 git clone git@github.com:sosuisen/elisp-formatter.git
 ```
 
-In CI, fetch a tag of this repository. It is private, so the job needs a token that can read
-it. Put a fine-grained personal access token with read access to the contents of this
-repository in a secret of the project, here `ELISP_FORMATTER_TOKEN`.
+In CI, fetch a tag of this repository. A new tag changes nothing until the project asks for it.
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v7
   with:
     repository: sosuisen/elisp-formatter
     ref: v0.1.0
     path: elisp-formatter
-    token: ${{ secrets.ELISP_FORMATTER_TOKEN }}
 - run: emacs -Q --batch -l elisp-formatter/elisp-formatter.el -f elisp-formatter-check lisp
 ```
 
