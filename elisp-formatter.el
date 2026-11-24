@@ -99,7 +99,8 @@ rest of them."
   (let ((changed (elisp-formatter-changed (elisp-formatter--command-paths))))
     (dolist (entry changed)
       (message "not formatted: %s" (car entry)))
-    (kill-emacs 1)))
+    (when changed
+      (kill-emacs 1))))
 
 (provide 'elisp-formatter)
 
