@@ -53,6 +53,23 @@
   (let ((text "(defconst c \"first  \nsecond\")\n"))
     (should (equal (elisp-formatter-test--formatted text) text))))
 
+;; 渡したファイルのマクロは、その`declare'の字下げに従う。
+(ert-deftest elisp-formatter-indents-a-macro-by-its-declare-form ()
+  (let ((file (make-temp-file
+               "elisp-formatter-test" nil ".el"
+               (concat "(defmacro elisp-formatter-test--with-two (a b &rest body)\n"
+                       "  (declare (indent 2))\n"
+                       "  `(list ,a ,b ,@body))\n"
+                       "(elisp-formatter-test--with-two 1\n"
+                       "2\n"
+                       "3)\n"))))
+    (unwind-protect
+        (progn
+          (elisp-formatter-learn-macros (list file))
+          (should (string-suffix-p "(elisp-formatter-test--with-two 1\n    2\n  3)\n"
+                                   (elisp-formatter-formatted file))))
+      (delete-file file))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
