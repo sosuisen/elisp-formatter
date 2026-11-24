@@ -81,10 +81,22 @@ rest of them."
         (unless (equal (elisp-formatter--bytes formatted) (elisp-formatter--file-bytes file))
           (push (cons file formatted) changed))))))
 
+(defconst elisp-formatter--usage
+  "Usage:
+  emacs -Q --batch -l elisp-formatter.el -f elisp-formatter-write PATH...
+  emacs -Q --batch -l elisp-formatter.el -f elisp-formatter-check PATH...
+A PATH is an Emacs Lisp file, or a folder whose .el files are all taken."
+  "What the commands print when no path is given.")
+
 (defun elisp-formatter--command-paths ()
-  "Take the paths that follow the command on the command line."
-  (prog1 command-line-args-left
-    (setq command-line-args-left nil)))
+  "Take the paths that follow the command on the command line.
+Without a path, print the usage and end Emacs with 2."
+  (let ((paths command-line-args-left))
+    (setq command-line-args-left nil)
+    (unless paths
+      (message "%s" elisp-formatter--usage)
+      (kill-emacs 2))
+    paths))
 
 (defun elisp-formatter-write ()
   "Format the Emacs Lisp files of the paths on the command line."
