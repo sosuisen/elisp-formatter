@@ -158,6 +158,12 @@ Return the exit code and the output, as (CODE . OUTPUT)."
       (should-not (string-search "right.el" (cdr result)))
       (should (equal (elisp-formatter-test--bytes "wrong.el") "(defun f (x)\nx)\n")))))
 
+;; checkは、すべて整っていれば0で終わる。
+(ert-deftest elisp-formatter-check-passes-when-all-the-files-are-formatted ()
+  (elisp-formatter-test--in-folder '()
+    (elisp-formatter-test--write-file "right.el" "(defun f (x)\n  x)\n")
+    (should (equal (car (elisp-formatter-test--run "elisp-formatter-check" ".")) 0))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
