@@ -43,6 +43,11 @@
   (let ((text "(defconst c \"first\n\tsecond\")\n"))
     (should (equal (elisp-formatter-test--formatted text) text))))
 
+;; 行の終わりの空白は、消える。
+(ert-deftest elisp-formatter-removes-the-spaces-at-the-end-of-a-line ()
+  (should (equal (elisp-formatter-test--formatted "(defun f (x)  \n  (when x\t\n    x))\n")
+                 "(defun f (x)\n  (when x\n    x))\n")))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
