@@ -11,6 +11,7 @@
   (with-temp-buffer
     (insert-file-contents file)
     (emacs-lisp-mode)
+    (setq indent-tabs-mode nil)
     (let ((inhibit-message t))
       (indent-region (point-min) (point-max)))
     (buffer-string)))
