@@ -22,14 +22,18 @@ point at the end of the match."
       (replace-match (funcall replacement) t t))))
 
 (defun elisp-formatter-learn-macros (files)
-  "Define the macros of FILES, so that the indent follows their `declare' forms."
+  "Define the macros of FILES, so that the indent follows their `declare' forms.
+Only the `defmacro' forms are evaluated: loading the files would run the
+rest of them."
   (dolist (file files)
     (with-temp-buffer
       (insert-file-contents file)
       (goto-char (point-min))
       (condition-case nil
           (while t
-            (eval (read (current-buffer)) t))
+            (let ((form (read (current-buffer))))
+              (when (eq (car-safe form) 'defmacro)
+                (eval form t))))
         (end-of-file nil)))))
 
 (defun elisp-formatter-formatted (file)
