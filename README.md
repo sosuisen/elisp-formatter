@@ -48,7 +48,7 @@ git clone git@github.com:sosuisen/elisp-formatter.git
 In CI, fetch a tag of this repository. A new tag changes nothing until the project asks for it.
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v7
   with:
     repository: sosuisen/elisp-formatter
     ref: v0.1.0
