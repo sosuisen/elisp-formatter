@@ -112,6 +112,41 @@ A name may have a folder in it, which is made."
     (should (equal (elisp-formatter-test--relative (elisp-formatter-files '("format.el" "lisp")))
                    '("format.el" "lisp/a.el")))))
 
+(defun elisp-formatter-test--run (command &rest paths)
+  "Run COMMAND on PATHS in another Emacs, as on the command line.
+Return the exit code and the output, as (CODE . OUTPUT)."
+  (with-temp-buffer
+    (let ((code (apply #'call-process
+                       (expand-file-name invocation-name invocation-directory)
+                       nil t nil
+                       "-Q" "--batch" "-l" (locate-library "elisp-formatter.el")
+                       "-f" command paths)))
+      (cons code (buffer-string)))))
+
+(defun elisp-formatter-test--write-file (name text)
+  "Write TEXT to the file NAME as it is, with no change of its line ends."
+  (let ((coding-system-for-write 'no-conversion))
+    (write-region text nil name)))
+
+(defun elisp-formatter-test--bytes (name)
+  "Return the bytes of the file NAME, with no change of its line ends."
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (let ((coding-system-for-read 'no-conversion))
+      (insert-file-contents name))
+    (buffer-string)))
+
+;; writeは、整っていないファイルだけを書き換え、改行はLFになる。
+(ert-deftest elisp-formatter-write-rewrites-only-the-files-not-formatted-with-lf ()
+  (elisp-formatter-test--in-folder '()
+    (elisp-formatter-test--write-file "wrong.el" "(defun f (x)\r\nx)\r\n")
+    (elisp-formatter-test--write-file "right.el" "(defun f (x)\n  x)\n")
+    (set-file-times "right.el" (encode-time '(0 0 0 1 1 2020 nil nil t)))
+    (let ((before (file-attribute-modification-time (file-attributes "right.el"))))
+      (should (equal (car (elisp-formatter-test--run "elisp-formatter-write" ".")) 0))
+      (should (equal (elisp-formatter-test--bytes "wrong.el") "(defun f (x)\n  x)\n"))
+      (should (equal (file-attribute-modification-time (file-attributes "right.el")) before)))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
