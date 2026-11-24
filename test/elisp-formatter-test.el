@@ -147,6 +147,17 @@ Return the exit code and the output, as (CODE . OUTPUT)."
       (should (equal (elisp-formatter-test--bytes "wrong.el") "(defun f (x)\n  x)\n"))
       (should (equal (file-attribute-modification-time (file-attributes "right.el")) before)))))
 
+;; checkは、整っていないファイルの名前を出し、1で終わる。
+(ert-deftest elisp-formatter-check-names-the-files-not-formatted-and-fails ()
+  (elisp-formatter-test--in-folder '()
+    (elisp-formatter-test--write-file "wrong.el" "(defun f (x)\nx)\n")
+    (elisp-formatter-test--write-file "right.el" "(defun f (x)\n  x)\n")
+    (let ((result (elisp-formatter-test--run "elisp-formatter-check" ".")))
+      (should (equal (car result) 1))
+      (should (string-search "wrong.el" (cdr result)))
+      (should-not (string-search "right.el" (cdr result)))
+      (should (equal (elisp-formatter-test--bytes "wrong.el") "(defun f (x)\nx)\n")))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
