@@ -70,6 +70,20 @@
                                    (elisp-formatter-formatted file))))
       (delete-file file))))
 
+(defvar elisp-formatter-test--ran nil
+  "Set by a form in a file whose macros are learned.")
+
+;; マクロを覚えるとき、defmacroのほかの式は評価しない。
+(ert-deftest elisp-formatter-learns-the-macros-without-running-the-other-forms ()
+  (let ((file (make-temp-file "elisp-formatter-test" nil ".el"
+                              "(setq elisp-formatter-test--ran t)\n"))
+        (elisp-formatter-test--ran nil))
+    (unwind-protect
+        (progn
+          (elisp-formatter-learn-macros (list file))
+          (should-not elisp-formatter-test--ran))
+      (delete-file file))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
