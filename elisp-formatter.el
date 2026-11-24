@@ -94,6 +94,13 @@ rest of them."
         (insert (cdr entry))))
     (message "formatted %s" (car entry))))
 
+(defun elisp-formatter-check ()
+  "Fail when an Emacs Lisp file of the paths on the command line is not formatted."
+  (let ((changed (elisp-formatter-changed (elisp-formatter--command-paths))))
+    (dolist (entry changed)
+      (message "not formatted: %s" (car entry)))
+    (kill-emacs 1)))
+
 (provide 'elisp-formatter)
 
 ;;; elisp-formatter.el ends here
