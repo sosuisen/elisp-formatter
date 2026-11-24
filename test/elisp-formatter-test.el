@@ -1,0 +1,176 @@
+;;; elisp-formatter-test.el --- Tests of elisp-formatter -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
+;; emacs -Q --batch -L . -l test/elisp-formatter-test.el -f ert-run-tests-batch-and-exit
+
+;;; Code:
+
+(require 'ert)
+(require 'elisp-formatter)
+
+(defun elisp-formatter-test--formatted (text)
+  "Return TEXT as the formatter writes it, through a file of its own."
+  (let ((file (make-temp-file "elisp-formatter-test" nil ".el" text)))
+    (unwind-protect
+        (elisp-formatter-formatted file)
+      (delete-file file))))
+
+;; emacs-lisp-modeの字下げで整った文は、そのまま残る。
+(ert-deftest elisp-formatter-leaves-a-well-indented-text-as-it-is ()
+  (let ((text "(defun f (x)\n  (when x\n    (message \"%s\" x)))\n"))
+    (should (equal (elisp-formatter-test--formatted text) text))))
+
+;; 字下げのずれた行は、emacs-lisp-modeの字下げに直る。
+(ert-deftest elisp-formatter-fixes-a-wrong-indent ()
+  (should (equal (elisp-formatter-test--formatted "(defun f (x)\n(when x\n        (message \"%s\" x)))\n")
+                 "(defun f (x)\n  (when x\n    (message \"%s\" x)))\n")))
+
+;; 字下げは、タブを使わず空白で行う。
+(ert-deftest elisp-formatter-indents-with-spaces-not-tabs ()
+  (should (equal (elisp-formatter-test--formatted
+                  "(defun f (x)\n  (when x\n    (when x\n      (when x\n(message \"%s\" x)))))\n")
+                 "(defun f (x)\n  (when x\n    (when x\n      (when x\n        (message \"%s\" x)))))\n")))
+
+;; 前からある字下げのタブも、空白になる。
+(ert-deftest elisp-formatter-turns-the-tabs-of-an-indent-into-spaces ()
+  (should (equal (elisp-formatter-test--formatted
+                  "(defun f (x)\n  (when x\n    (when x\n      (when x\n\t(message \"%s\" x)))))\n")
+                 "(defun f (x)\n  (when x\n    (when x\n      (when x\n        (message \"%s\" x)))))\n")))
+
+;; 文字列の中の行の頭のタブは、そのまま残る。
+(ert-deftest elisp-formatter-leaves-a-tab-at-the-start-of-a-line-in-a-string ()
+  (let ((text "(defconst c \"first\n\tsecond\")\n"))
+    (should (equal (elisp-formatter-test--formatted text) text))))
+
+;; 行の終わりの空白は、消える。
+(ert-deftest elisp-formatter-removes-the-spaces-at-the-end-of-a-line ()
+  (should (equal (elisp-formatter-test--formatted "(defun f (x)  \n  (when x\t\n    x))\n")
+                 "(defun f (x)\n  (when x\n    x))\n")))
+
+;; 文字列の中の行の終わりの空白は、そのまま残る。
+(ert-deftest elisp-formatter-leaves-the-spaces-at-the-end-of-a-line-in-a-string ()
+  (let ((text "(defconst c \"first  \nsecond\")\n"))
+    (should (equal (elisp-formatter-test--formatted text) text))))
+
+;; 渡したファイルのマクロは、その`declare'の字下げに従う。
+(ert-deftest elisp-formatter-indents-a-macro-by-its-declare-form ()
+  (let ((file (make-temp-file
+               "elisp-formatter-test" nil ".el"
+               (concat "(defmacro elisp-formatter-test--with-two (a b &rest body)\n"
+                       "  (declare (indent 2))\n"
+                       "  `(list ,a ,b ,@body))\n"
+                       "(elisp-formatter-test--with-two 1\n"
+                       "2\n"
+                       "3)\n"))))
+    (unwind-protect
+        (progn
+          (elisp-formatter-learn-macros (list file))
+          (should (string-suffix-p "(elisp-formatter-test--with-two 1\n    2\n  3)\n"
+                                   (elisp-formatter-formatted file))))
+      (delete-file file))))
+
+(defvar elisp-formatter-test--ran nil
+  "Set by a form in a file whose macros are learned.")
+
+;; マクロを覚えるとき、defmacroのほかの式は評価しない。
+(ert-deftest elisp-formatter-learns-the-macros-without-running-the-other-forms ()
+  (let ((file (make-temp-file "elisp-formatter-test" nil ".el"
+                              "(setq elisp-formatter-test--ran t)\n"))
+        (elisp-formatter-test--ran nil))
+    (unwind-protect
+        (progn
+          (elisp-formatter-learn-macros (list file))
+          (should-not elisp-formatter-test--ran))
+      (delete-file file))))
+
+(defmacro elisp-formatter-test--in-folder (names &rest body)
+  "Run BODY in a new folder that holds the empty files NAMES.
+A name may have a folder in it, which is made."
+  (declare (indent 1))
+  `(let ((default-directory (file-name-as-directory (make-temp-file "elisp-formatter-test" t))))
+     (unwind-protect
+         (progn
+           (dolist (name ,names)
+             (make-empty-file name t))
+           ,@body)
+       (delete-directory default-directory t))))
+
+(defun elisp-formatter-test--relative (files)
+  "Return FILES relative to the current folder, sorted."
+  (sort (mapcar #'file-relative-name files) #'string<))
+
+;; フォルダーを渡すと、その下の.elのファイルがすべて対象になる。
+(ert-deftest elisp-formatter-takes-all-the-el-files-under-a-folder ()
+  (elisp-formatter-test--in-folder '("lisp/a.el" "lisp/test/b.el" "lisp/notes.txt")
+    (should (equal (elisp-formatter-test--relative (elisp-formatter-files '("lisp")))
+                   '("lisp/a.el" "lisp/test/b.el")))))
+
+;; ファイルを渡すと、そのファイルが対象になる。
+(ert-deftest elisp-formatter-takes-a-file-that-is-given ()
+  (elisp-formatter-test--in-folder '("format.el" "lisp/a.el")
+    (should (equal (elisp-formatter-test--relative (elisp-formatter-files '("format.el" "lisp")))
+                   '("format.el" "lisp/a.el")))))
+
+(defun elisp-formatter-test--run (command &rest paths)
+  "Run COMMAND on PATHS in another Emacs, as on the command line.
+Return the exit code and the output, as (CODE . OUTPUT)."
+  (with-temp-buffer
+    (let ((code (apply #'call-process
+                       (expand-file-name invocation-name invocation-directory)
+                       nil t nil
+                       "-Q" "--batch" "-l" (locate-library "elisp-formatter.el")
+                       "-f" command paths)))
+      (cons code (buffer-string)))))
+
+(defun elisp-formatter-test--write-file (name text)
+  "Write TEXT to the file NAME as it is, with no change of its line ends."
+  (let ((coding-system-for-write 'no-conversion))
+    (write-region text nil name)))
+
+(defun elisp-formatter-test--bytes (name)
+  "Return the bytes of the file NAME, with no change of its line ends."
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (let ((coding-system-for-read 'no-conversion))
+      (insert-file-contents name))
+    (buffer-string)))
+
+;; writeは、整っていないファイルだけを書き換え、改行はLFになる。
+(ert-deftest elisp-formatter-write-rewrites-only-the-files-not-formatted-with-lf ()
+  (elisp-formatter-test--in-folder '()
+    (elisp-formatter-test--write-file "wrong.el" "(defun f (x)\r\nx)\r\n")
+    (elisp-formatter-test--write-file "right.el" "(defun f (x)\n  x)\n")
+    (set-file-times "right.el" (encode-time '(0 0 0 1 1 2020 nil nil t)))
+    (let ((before (file-attribute-modification-time (file-attributes "right.el"))))
+      (should (equal (car (elisp-formatter-test--run "elisp-formatter-write" ".")) 0))
+      (should (equal (elisp-formatter-test--bytes "wrong.el") "(defun f (x)\n  x)\n"))
+      (should (equal (file-attribute-modification-time (file-attributes "right.el")) before)))))
+
+;; checkは、整っていないファイルの名前を出し、1で終わる。
+(ert-deftest elisp-formatter-check-names-the-files-not-formatted-and-fails ()
+  (elisp-formatter-test--in-folder '()
+    (elisp-formatter-test--write-file "wrong.el" "(defun f (x)\nx)\n")
+    (elisp-formatter-test--write-file "right.el" "(defun f (x)\n  x)\n")
+    (let ((result (elisp-formatter-test--run "elisp-formatter-check" ".")))
+      (should (equal (car result) 1))
+      (should (string-search "wrong.el" (cdr result)))
+      (should-not (string-search "right.el" (cdr result)))
+      (should (equal (elisp-formatter-test--bytes "wrong.el") "(defun f (x)\nx)\n")))))
+
+;; checkは、すべて整っていれば0で終わる。
+(ert-deftest elisp-formatter-check-passes-when-all-the-files-are-formatted ()
+  (elisp-formatter-test--in-folder '()
+    (elisp-formatter-test--write-file "right.el" "(defun f (x)\n  x)\n")
+    (should (equal (car (elisp-formatter-test--run "elisp-formatter-check" ".")) 0))))
+
+;; 対象を渡さなければ、使い方を出し、失敗する。
+(ert-deftest elisp-formatter-tells-the-usage-and-fails-without-paths ()
+  (dolist (command '("elisp-formatter-write" "elisp-formatter-check"))
+    (let ((result (elisp-formatter-test--run command)))
+      (should (equal (car result) 2))
+      (should (string-search "Usage:" (cdr result))))))
+
+(provide 'elisp-formatter-test)
+
+;;; elisp-formatter-test.el ends here
