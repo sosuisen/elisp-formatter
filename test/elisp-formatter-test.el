@@ -26,6 +26,12 @@
   (should (equal (elisp-formatter-test--formatted "(defun f (x)\n(when x\n        (message \"%s\" x)))\n")
                  "(defun f (x)\n  (when x\n    (message \"%s\" x)))\n")))
 
+;; 字下げは、タブを使わず空白で行う。
+(ert-deftest elisp-formatter-indents-with-spaces-not-tabs ()
+  (should (equal (elisp-formatter-test--formatted
+                  "(defun f (x)\n  (when x\n    (when x\n      (when x\n(message \"%s\" x)))))\n")
+                 "(defun f (x)\n  (when x\n    (when x\n      (when x\n        (message \"%s\" x)))))\n")))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
