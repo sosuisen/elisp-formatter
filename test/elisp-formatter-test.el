@@ -32,6 +32,12 @@
                   "(defun f (x)\n  (when x\n    (when x\n      (when x\n(message \"%s\" x)))))\n")
                  "(defun f (x)\n  (when x\n    (when x\n      (when x\n        (message \"%s\" x)))))\n")))
 
+;; 前からある字下げのタブも、空白になる。
+(ert-deftest elisp-formatter-turns-the-tabs-of-an-indent-into-spaces ()
+  (should (equal (elisp-formatter-test--formatted
+                  "(defun f (x)\n  (when x\n    (when x\n      (when x\n\t(message \"%s\" x)))))\n")
+                 "(defun f (x)\n  (when x\n    (when x\n      (when x\n        (message \"%s\" x)))))\n")))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
