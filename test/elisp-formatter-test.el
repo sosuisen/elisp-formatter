@@ -106,6 +106,12 @@ A name may have a folder in it, which is made."
     (should (equal (elisp-formatter-test--relative (elisp-formatter-files '("lisp")))
                    '("lisp/a.el" "lisp/test/b.el")))))
 
+;; ファイルを渡すと、そのファイルが対象になる。
+(ert-deftest elisp-formatter-takes-a-file-that-is-given ()
+  (elisp-formatter-test--in-folder '("format.el" "lisp/a.el")
+    (should (equal (elisp-formatter-test--relative (elisp-formatter-files '("format.el" "lisp")))
+                   '("format.el" "lisp/a.el")))))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
