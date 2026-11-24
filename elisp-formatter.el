@@ -59,6 +59,41 @@ rest of them."
     (elisp-formatter--replace-outside-strings "[ \t]+$" (lambda () ""))
     (buffer-string)))
 
+(defun elisp-formatter--bytes (formatted)
+  "Return FORMATTED as the bytes of a file, in UTF-8 with LF."
+  (encode-coding-string formatted 'utf-8-unix))
+
+(defun elisp-formatter--file-bytes (file)
+  "Return the bytes of FILE as they are."
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (let ((coding-system-for-read 'no-conversion))
+      (insert-file-contents file))
+    (buffer-string)))
+
+(defun elisp-formatter-changed (paths)
+  "Return the files of PATHS that are not formatted, each with its formatted text."
+  (let ((files (elisp-formatter-files paths))
+        changed)
+    (elisp-formatter-learn-macros files)
+    (dolist (file files (nreverse changed))
+      (let ((formatted (elisp-formatter-formatted file)))
+        (unless (equal (elisp-formatter--bytes formatted) (elisp-formatter--file-bytes file))
+          (push (cons file formatted) changed))))))
+
+(defun elisp-formatter--command-paths ()
+  "Take the paths that follow the command on the command line."
+  (prog1 command-line-args-left
+    (setq command-line-args-left nil)))
+
+(defun elisp-formatter-write ()
+  "Format the Emacs Lisp files of the paths on the command line."
+  (dolist (entry (elisp-formatter-changed (elisp-formatter--command-paths)))
+    (let ((coding-system-for-write 'utf-8-unix))
+      (with-temp-file (car entry)
+        (insert (cdr entry))))
+    (message "formatted %s" (car entry))))
+
 (provide 'elisp-formatter)
 
 ;;; elisp-formatter.el ends here
