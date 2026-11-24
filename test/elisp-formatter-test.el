@@ -21,6 +21,11 @@
   (let ((text "(defun f (x)\n  (when x\n    (message \"%s\" x)))\n"))
     (should (equal (elisp-formatter-test--formatted text) text))))
 
+;; 字下げのずれた行は、emacs-lisp-modeの字下げに直る。
+(ert-deftest elisp-formatter-fixes-a-wrong-indent ()
+  (should (equal (elisp-formatter-test--formatted "(defun f (x)\n(when x\n        (message \"%s\" x)))\n")
+                 "(defun f (x)\n  (when x\n    (message \"%s\" x)))\n")))
+
 (provide 'elisp-formatter-test)
 
 ;;; elisp-formatter-test.el ends here
