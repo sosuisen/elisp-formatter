@@ -14,6 +14,9 @@
     (setq indent-tabs-mode nil)
     (let ((inhibit-message t))
       (indent-region (point-min) (point-max)))
+    (goto-char (point-min))
+    (while (re-search-forward "^[ \t]*\t[ \t]*" nil t)
+      (replace-match (make-string (current-column) ?\s)))
     (buffer-string)))
 
 (provide 'elisp-formatter)
